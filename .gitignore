@@ -1,0 +1,12 @@
+# Local editor / assistant settings
+.claude/
+.vscode/
+.idea/
+
+# Python caches (tests/e2e)
+__pycache__/
+*.pyc
+
+# OS files
+.DS_Store
+Thumbs.db

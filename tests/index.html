@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>اختبارات دريس</title>
+  <link rel="icon" href="data:,">
+  <style>
+    body { font-family: system-ui, "Segoe UI", Tahoma, sans-serif; background: #111318; color: #e8e6e0; margin: 0; padding: 24px; }
+    h1 { margin: 0 0 8px; font-size: 22px; }
+    #summary { font-size: 18px; margin: 12px 0 18px; }
+    .pass { color: #7ddc8a; }
+    .fail { color: #ff7a7a; }
+    li { margin: 4px 0; direction: ltr; text-align: left; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+    pre { white-space: pre-wrap; color: #ffb4b4; margin: 4px 0 8px 18px; }
+    #info { direction: ltr; text-align: left; color: #b9c3d6; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>اختبارات منطق اللعبة والذكاء الاصطناعي</h1>
+  <div id="summary">جارٍ التشغيل…</div>
+  <div id="info"></div>
+  <ul id="list"></ul>
+  <script type="module">
+    import { run } from './harness.js';
+    import './rules.test.js';
+    import './ai.test.js';
+    import './variants.test.js';
+    import './campaign.test.js';
+
+    const list = document.getElementById('list');
+    const res = await run({
+      report(r) {
+        const li = document.createElement('li');
+        li.className = r.ok ? 'pass' : 'fail';
+        li.textContent = `${r.ok ? '✔' : '✘'} ${r.name} (${r.ms.toFixed(0)} ms)`;
+        list.appendChild(li);
+        if (!r.ok) {
+          const pre = document.createElement('pre');
+          pre.textContent = r.error && (r.error.stack || r.error.message);
+          list.appendChild(pre);
+        }
+      },
+    });
+    const sum = document.getElementById('summary');
+    sum.className = res.failed ? 'fail' : 'pass';
+    sum.textContent = `${res.passed}/${res.total} نجح${res.failed ? ` — ${res.failed} فشل` : ''}`;
+    document.getElementById('info').textContent =
+      `opening value (starter POV): ${globalThis.__dreesOpeningValue}\nlevel stats: ${JSON.stringify(globalThis.__dreesLevelStats)}`;
+    window.__testResult = { passed: res.passed, failed: res.failed, total: res.total };
+  </script>
+</body>
+</html>

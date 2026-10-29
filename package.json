@@ -1,0 +1,11 @@
+{
+  "name": "drees",
+  "version": "1.0.0",
+  "description": "دريس — لعبة شعبية على لوحة 3×3 (HTML + CSS + JavaScript)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "python -m http.server 8765",
+    "test": "node tests/run.js"
+  }
+}
