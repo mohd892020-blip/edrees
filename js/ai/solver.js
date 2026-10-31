@@ -21,7 +21,7 @@
  * One solver exists per rule variant (see core/rules.js).
  */
 
-import { BLOCKED, linesFor, canStep, normalizeVariant, variantKey } from '../core/rules.js';
+import { BLOCKED, linesFor, canStep, normalizeVariant, variantKey, formsLine } from '../core/rules.js';
 
 export const WIN = 1;
 export const LOSS = -1;
@@ -223,7 +223,7 @@ export class Solver {
     const memo = this.placementMemo[starter];
     const hit = memo.get(code);
     if (hit !== undefined) return hit;
-    const { mover, children } = placementChildren(code, starter, this.blocked);
+    const { mover, children } = placementChildren(code, starter, this.variant);
     let result;
     if (mover === null) result = this.leafScore(code, starter);
     else {
@@ -239,7 +239,7 @@ export class Solver {
     const memo = this.expectMemo[starter];
     const hit = memo.get(code);
     if (hit !== undefined) return hit;
-    const { mover, children } = placementChildren(code, starter, this.blocked);
+    const { mover, children } = placementChildren(code, starter, this.variant);
     const result =
       mover === null
         ? this.leafScore(code, starter)
@@ -254,7 +254,7 @@ export class Solver {
     const sign = mover === starter ? 1 : -1;
     const out = [];
     for (let cell = 0; cell < 9; cell++) {
-      if (board[cell] !== null) continue;
+      if (board[cell] !== null || formsLine(board, mover, cell, this.variant)) continue;
       const child = code + (mover + 1) * POW3[cell];
       out.push({
         cell,
@@ -271,9 +271,10 @@ export class Solver {
   }
 }
 
-/** Shared helper: who places next and the resulting child codes. */
-export function placementChildren(code, starter, blocked = []) {
-  const board = decode(code, blocked);
+/** Shared helper: who places next and the legal resulting child codes. */
+export function placementChildren(code, starter, variant) {
+  const v = normalizeVariant(variant);
+  const board = decode(code, v.blocked);
   let ns = 0;
   let no = 0;
   for (const v of board) {
@@ -284,7 +285,7 @@ export function placementChildren(code, starter, blocked = []) {
   const mover = ns < 3 ? starter : 1 - starter;
   const children = [];
   for (let cell = 0; cell < 9; cell++) {
-    if (board[cell] === null) children.push({ cell, code: code + (mover + 1) * POW3[cell] });
+    if (board[cell] === null && !formsLine(board, mover, cell, v)) children.push({ cell, code: code + (mover + 1) * POW3[cell] });
   }
   return { mover, children };
 }

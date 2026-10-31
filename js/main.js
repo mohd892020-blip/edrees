@@ -3,7 +3,7 @@
  * and the presenter that turns rule-level events into animations, sounds and
  * HUD updates.
  */
-import { Phase, ActionType, CLASSIC, createGame, threats as threatsOf } from './core/rules.js';
+import { Phase, ActionType, CLASSIC, createGame, legalPlacements, threats as threatsOf } from './core/rules.js';
 import { prepare, bestAction } from './ai/ai.js';
 import { reviewGame } from './ai/review.js';
 import { Match } from './game/match.js';
@@ -28,20 +28,26 @@ import { recordStars, starsOf, totalStars, stageUnlocked } from './campaign/prog
 
 const $ = (s) => document.querySelector(s);
 
+/** Pieces shown on the board behind the menus. */
+const DEMO_BOARD = [0, null, 1, 1, null, 0, null, 0, 1];
+const SCREEN_CAMERA = {
+  'screen-menu': 'menu', 'screen-campaign': 'menu', 'screen-collection': 'showcase', 'screen-toss': 'toss', 'screen-game': 'game',
+};
+
 class App {
-  constructor() {
+  constructor(RendererClass) {
     this.data = loadData();
     const s = this.data.settings;
 
     this.sound = new SoundEngine({ volume: s.volume, muted: s.muted });
     this.music = new Music(this.sound);
-    this.renderer = new Renderer($('#board-canvas'), {
+    this.renderer = new RendererClass($('#board-canvas'), {
       onImpact: (p, k) => this.sound.place(p.type, k),
       onLift: () => this.sound.pickup(),
       getInsets: () => {
-        const stage = $('#stage').getBoundingClientRect();
-        const top = $('#hud-top').getBoundingClientRect().bottom - stage.top;
-        const bottom = stage.bottom - $('#hint-bar').getBoundingClientRect().top;
+        const world = $('#world').getBoundingClientRect();
+        const top = $('#hud-top').getBoundingClientRect().bottom - world.top;
+        const bottom = world.bottom - $('#hint-bar').getBoundingClientRect().top;
         return { top: Math.max(0, top), bottom: Math.max(0, bottom) };
       },
     });
@@ -59,11 +65,19 @@ class App {
     this.thinking = false;
     this.threatSig = '';
 
+    document.body.classList.toggle('no-webgl', !this.renderer.is3D);
     this._applyTheme(s.theme);
     this.syncMenuSound = buildMenu({ settings: s, onChange: (k, v) => this.setSetting(k, v), sound: this.sound });
     this.syncGameSound = bindSoundControls({ settings: s, onChange: (k, v) => this.setSetting(k, v), sound: this.sound, prefix: 'game' });
     this._renderMenuStats();
     this._wire();
+
+    this._showDemo();
+    if (this.renderer.is3D) {
+      this.renderer.start();
+      this.renderer.setMode('menu', { snap: true });
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => $('#splash').classList.add('done')));
 
     // Audio can only start after a user gesture.
     const unlock = () => {
@@ -87,6 +101,7 @@ class App {
     s[key] = value;
     saveData(this.data);
     if (key === 'theme') this._applyTheme(value);
+    if (key === 'piece') this._showDemo();
     if (key === 'level') this._renderMenuStats();
     if (key === 'volume') this.sound.setVolume(value);
     if (key === 'muted') this.sound.setMuted(value);
@@ -120,9 +135,22 @@ class App {
     $('#menu-stats').innerHTML = `
       <div class="stat"><b>${st.w}</b><span>فوز</span></div>
       <div class="stat"><b>${st.d}</b><span>تعادل</span></div>
-      <div class="stat"><b>${st.l}</b><span>خسارة</span></div>
-      <p class="stat-note">في الكلاسيك بمستوى «${LEVEL_NAMES[level]}» · مجموع انتصاراتك: ${all.w}</p>`;
-    $('#campaign-progress').textContent = `★ ${totalStars(this.data.campaign)} من ${MAX_STARS} · ألغاز وتحديات وزعماء`;
+      <div class="stat"><b>${st.l}</b><span>خسارة</span></div>`;
+    const stars = totalStars(this.data.campaign);
+    $('#campaign-progress').textContent = `★ ${stars} من ${MAX_STARS} · ألغاز وتحديات وزعماء`;
+    $('#menu-stars').textContent = stars;
+    $('#menu-wins').textContent = all.w;
+    $('#classic-sub').textContent = `ضد الكمبيوتر · مستوى ${LEVEL_NAMES[level]}`;
+  }
+
+  /** The player's pieces resting on the board behind the menus. */
+  _showDemo() {
+    const r = this.renderer;
+    const { piece } = this.data.settings;
+    r.setPieceTypes([piece, OPPONENT_PIECE[piece]]);
+    r.resetPieces(7);
+    r.blockedCells = [];
+    if (r.is3D) r.showDemo(DEMO_BOARD);
   }
 
   _syncSoundButton() {
@@ -133,16 +161,45 @@ class App {
 
   _show(id) {
     for (const el of document.querySelectorAll('.screen')) el.classList.toggle('is-active', el.id === id);
-    if (id === 'screen-game') this.renderer.start();
-    else this.renderer.stop();
+    const r = this.renderer;
+    if (r.is3D) {
+      if (id === 'screen-game') r.resize(); // the HUD height may have changed
+      return r.setMode(SCREEN_CAMERA[id]);
+    }
+    if (id === 'screen-game') r.start();
+    else r.stop();
+    return Promise.resolve();
   }
 
   _wire() {
-    $('#btn-play').addEventListener('click', () => {
+    const click = (sel, fn) => $(sel).addEventListener('click', () => {
       this.sound.unlock();
       this.sound.uiClick();
+      fn();
+    });
+    click('#btn-classic', () => this._openModal('#modal-classic'));
+    click('#btn-classic-close', () => this._closeModal('#modal-classic'));
+    click('#btn-play', () => {
+      this._closeModal('#modal-classic');
       this.startClassic();
     });
+    click('#btn-settings', () => this._openModal('#modal-settings'));
+    click('#btn-settings-close', () => this._closeModal('#modal-settings'));
+    click('#btn-how', () => this._openModal('#modal-how'));
+    click('#btn-how-close', () => this._closeModal('#modal-how'));
+    click('#btn-collection', () => this._show('screen-collection'));
+    click('#btn-collection-back', () => this.showMenu());
+    for (const [tab, rail, other, otherRail] of [
+      ['#tab-themes', '#theme-picker', '#tab-pieces', '#piece-picker'],
+      ['#tab-pieces', '#piece-picker', '#tab-themes', '#theme-picker'],
+    ]) {
+      click(tab, () => {
+        $(tab).setAttribute('aria-selected', 'true');
+        $(other).setAttribute('aria-selected', 'false');
+        $(rail).hidden = false;
+        $(otherRail).hidden = true;
+      });
+    }
     $('#btn-campaign').addEventListener('click', () => {
       this.sound.unlock();
       this.sound.uiClick();
@@ -177,7 +234,11 @@ class App {
   }
 
   _confirmLeave() {
-    const m = $('#modal-confirm');
+    this._openModal('#modal-confirm');
+  }
+
+  _openModal(sel) {
+    const m = $(sel);
     m.hidden = false;
     requestAnimationFrame(() => m.classList.add('open'));
   }
@@ -201,6 +262,7 @@ class App {
     this._stopMatch();
     this.session = null;
     this._applyTheme(this.data.settings.theme);
+    this._showDemo();
     this._renderMenuStats();
     this._show('screen-menu');
   }
@@ -209,6 +271,7 @@ class App {
     this._stopMatch();
     this.session = null;
     this._applyTheme(this.data.settings.theme);
+    this._showDemo();
     this._show('screen-campaign');
     renderCampaign(this.data.campaign, (id) => this.openStage(id));
   }
@@ -250,25 +313,27 @@ class App {
     const types = [s.piece, OPPONENT_PIECE[s.piece]];
     this._applyTheme(session.theme);
 
+    const r = this.renderer;
+    r.setPieceTypes(types);
+    r.resetPieces();
+    r.blockedCells = (session.variant.blocked || []).slice();
+
     const tossed = mode === 'classic' || needsToss(stage);
     let starter = 0;
     if (tossed) {
       this._show('screen-toss');
       starter = await runToss({
         sound: this.sound,
-        humanImg: piecePreview(types[0], 0, 120, 21),
-        aiImg: piecePreview(types[1], 1, 120, 22),
+        pieces: types,
+        names: ['أنت', (stage && stage.boss) || 'الكمبيوتر'],
+        world: r,
       });
       if (!$('#screen-toss').classList.contains('is-active')) return;
     }
     const state = mode === 'classic' ? createGame({ starter }) : buildStageState(stage, session.chapter, starter);
     this.session.initial = state;
 
-    const r = this.renderer;
-    r.setPieceTypes(types);
-    r.resetPieces();
     r.syncToState(state);
-    r.blockedCells = state.rules.variant.blocked.slice();
     this.hud.setup({
       humanImg: piecePreview(types[0], 0, 72, 31),
       aiImg: piecePreview(types[1], 1, 72, 32),
@@ -277,9 +342,15 @@ class App {
       tossed,
     });
     this._updateGoal();
-    this._show('screen-game');
+    this.hud.update(state);
+    this.hud.hint('');
+    const current = this.session;
+    const arrived = this._show('screen-game');
     this.threatSig = '';
     this._syncHintButton();
+    if (mode === 'stage' && !tossed) this.hud.toast(`${KIND_NAMES[stage.kind]}: ${stage.title}`);
+    await arrived; // the first turn starts only once the camera has settled on the board
+    if (this.session !== current) return;
 
     const players = [
       new LocalHumanPlayer(this.input),
@@ -287,7 +358,6 @@ class App {
     ];
     const match = new Match({ players, state, presenter: this });
     this.match = match;
-    if (mode === 'stage' && !tossed) this.hud.toast(`${KIND_NAMES[stage.kind]}: ${stage.title}`);
     try {
       await match.run();
     } catch (err) {
@@ -380,9 +450,13 @@ class App {
     this.renderer.dangerCells = mine && this._assist() ? threats[1] : [];
     const ss = this.session;
     if (state.phase === Phase.PLACEMENT) {
-      this.hud.hint(mine
-        ? `ضع قطعتك ${state.placed[0] + 1} من 3: انقر مربعاً فارغاً أو اسحب القطعة إليه`
-        : `${ss.stage && ss.stage.boss ? ss.stage.boss : 'الكمبيوتر'} يصفّ قطعه…`);
+      const blockedByRule = mine && legalPlacements(state.board, 0, state.rules.variant).length
+        < state.board.filter((v) => v === null).length;
+      this.hud.hint(!mine
+        ? `${ss.stage && ss.stage.boss ? ss.stage.boss : 'الكمبيوتر'} يصفّ قطعه…`
+        : blockedByRule
+          ? `ضع قطعتك ${state.placed[0] + 1} من 3 — المربع المعلَّم بـ✕ ممنوع لأنه يكمل خطاً`
+          : `ضع قطعتك ${state.placed[0] + 1} من 3: انقر مربعاً فارغاً أو اسحب القطعة إليه`);
       return;
     }
     if (!mine) {
@@ -578,4 +652,17 @@ class App {
   }
 }
 
-window.dreesApp = new App();
+/** Starts the game with the 3D world, or the 2D board where WebGL isn't available. */
+async function boot() {
+  let RendererClass = Renderer;
+  try {
+    const force2D = new URLSearchParams(location.search).has('no3d');
+    const m = force2D ? null : await import('./render3d/world.js');
+    if (m && m.webglAvailable()) RendererClass = m.World3D;
+  } catch (err) {
+    console.warn('3D world unavailable, using the 2D board', err);
+  }
+  window.dreesApp = new App(RendererClass);
+}
+
+boot();

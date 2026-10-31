@@ -11,7 +11,7 @@
  */
 
 import {
-  Phase, ActionType, winningCells, winningMoves, opponent, linesFor, canStep, CLASSIC,
+  Phase, ActionType, winningCells, winningMoves, opponent, linesFor, canStep, legalPlacements, CLASSIC,
 } from '../core/rules.js';
 import { getSolver } from './solver.js';
 import { rankMovesBySearch, rankPlacementsBySearch } from './search.js';
@@ -86,12 +86,6 @@ function blockingMoves(board, player, v) {
   return solid.length ? solid : blocks;
 }
 
-function emptyList(board) {
-  const out = [];
-  board.forEach((v, i) => v === null && out.push(i));
-  return out;
-}
-
 /** Empty cells that would give `player` two-in-a-line with the third cell free. */
 function pairMakingCells(board, player, v) {
   const out = new Set();
@@ -107,8 +101,8 @@ function pairMakingCells(board, player, v) {
 
 const STRATEGIES = {
   easy: {
-    place(state, player, rng) {
-      return pick(rng, emptyList(state.board));
+    place(state, player, rng, v) {
+      return pick(rng, legalPlacements(state.board, player, v));
     },
     move(state, player, rng, v) {
       const wins = winningMoves(state.board, player, v);
@@ -122,16 +116,16 @@ const STRATEGIES = {
   medium: {
     place(state, player, rng, v) {
       const { board, starter } = state;
-      const empty = emptyList(board);
+      const legal = legalPlacements(board, player, v);
       if (player !== starter) {
         // The starter moves first after placement: fill the cells it could win on.
-        const danger = winningCells(board, starter, v).filter((c) => board[c] === null);
+        const danger = winningCells(board, starter, v).filter((c) => legal.includes(c));
         if (danger.length) return pick(rng, danger);
       } else if (rng() < 0.6) {
-        const pairs = pairMakingCells(board, player, v);
+        const pairs = pairMakingCells(board, player, v).filter((c) => legal.includes(c));
         if (pairs.length) return pick(rng, pairs);
       }
-      return pick(rng, empty);
+      return pick(rng, legal);
     },
     move(state, player, rng, v) {
       const wins = winningMoves(state.board, player, v);

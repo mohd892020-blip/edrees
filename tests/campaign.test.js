@@ -83,7 +83,7 @@ describe('campaign › content', () => {
     }
   });
 
-  test('the marble boss is a theoretical win for the human (second player)', () => {
+  test('the last boss is a theoretical win for the human (second player)', () => {
     const { chapter, stage } = findStage('4-4');
     const s = buildStageState(stage, chapter);
     assert.equal(s.starter, 1);

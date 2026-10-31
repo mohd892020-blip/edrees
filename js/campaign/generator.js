@@ -10,7 +10,7 @@
  * and picked deterministically, so a stage always shows the same position.
  */
 import { getSolver, encode, WIN, DRAW } from '../ai/solver.js';
-import { normalizeVariant, winningCells, winningMoves, DIAGONALS, BLOCKED } from '../core/rules.js';
+import { normalizeVariant, winningCells, winningMoves, placementLines, DIAGONALS, BLOCKED } from '../core/rules.js';
 
 // The 8 symmetries of the square (they preserve rows, columns, diagonals and the centre).
 const D4 = [
@@ -45,6 +45,8 @@ function humanToMove(solver) {
   if (cache.has(solver)) return cache.get(solver);
   const seen = new Map();
   solver.boards.forEach((board, bi) => {
+    // A finished line can't exist mid-game: placing one is forbidden and moving into one ends it.
+    if (solver.lineMasks[bi]) return;
     for (const p of [0, 1]) {
       const b = p === 0 ? board : swapColours(board);
       const key = canonical(b);
@@ -132,9 +134,12 @@ export function placementChallenge(variant, pick = 0) {
   const v = normalizeVariant(variant);
   const solver = getSolver(v);
   const cells = solver.cells;
+  const lines = placementLines(v);
+  const isLine = (set) => lines.some((l) => l.every((c) => set.includes(c)));
   const seen = new Set();
   const candidates = [];
   for (const set of combos(cells, 3)) {
+    if (isLine(set)) continue; // the starter may not place a line
     const board = Array(9).fill(null);
     for (const c of v.blocked) board[c] = BLOCKED;
     for (const c of set) board[c] = 1;
@@ -145,6 +150,7 @@ export function placementChallenge(variant, pick = 0) {
     let safe = 0;
     let total = 0;
     for (const reply of combos(free, 3)) {
+      if (isLine(reply)) continue; // nor may the human
       const leaf = board.slice();
       for (const c of reply) leaf[c] = 0;
       total++;

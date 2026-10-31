@@ -20,8 +20,6 @@ import time
 sys.path.insert(0, os.path.dirname(__file__))
 from cdp import Browser  # noqa: E402
 
-THEMES = ['wood', 'marble', 'sand', 'chalk', 'neon']
-PIECES = ['stone', 'butt', 'stick', 'cap', 'pit']
 
 HELPERS = r"""
 window.__e2e = {
@@ -33,6 +31,7 @@ window.__e2e = {
       tossBtn: !document.querySelector('#btn-toss-go').hidden,
       result: open('#modal-result'),
       stageDialog: open('#modal-stage'),
+      classicDialog: open('#modal-classic'),
       analysis: open('#modal-analysis'),
       resultTitle: document.querySelector('#result-title').textContent,
       resultSub: document.querySelector('#result-sub').textContent,
@@ -148,11 +147,13 @@ class Player:
 
 
 def play_classic(b, pl, level, human_level='medium', shots=None):
+    pl.press(*b.js("__e2e.center('#btn-classic')"))
+    wait(b, lambda i: i['classicDialog'], 5)
     pl.press(*b.js(f"__e2e.center('#level-picker [data-level={level}]')"))
     assert b.js('dreesApp.data.settings.level') == level, 'level not selected'
     pl.press(*b.js("__e2e.center('#btn-play')"))
     wait(b, lambda i: i['screen'] == 'screen-toss', 5)
-    wait(b, lambda i: i['tossBtn'], 10)
+    wait(b, lambda i: i['tossBtn'], 40)
     toss = b.js("document.querySelector('#toss-result').textContent")
     if shots:
         b.shot(f'{shots}_toss.png')
@@ -181,7 +182,7 @@ def play_stage(b, pl, sid, attempt, shots=None):
     if shots and attempt == 1:
         b.shot(f'{shots}_{sid}_dialog.png')
     pl.press(*b.js("__e2e.center('#btn-stage-start')"))
-    info = wait(b, lambda i: i['tossBtn'] or (i['screen'] == 'screen-game' and i['state'] is not None), 10)
+    info = wait(b, lambda i: i['tossBtn'] or (i['screen'] == 'screen-game' and i['state'] is not None), 40)
     if info['tossBtn']:
         pl.press(*b.js("__e2e.center('#btn-toss-go')"))
         wait(b, lambda i: i['screen'] == 'screen-game' and i['state'] is not None, 10)
@@ -239,11 +240,14 @@ def run_campaign(b, pl, shots):
 def open_app(b, base):
     b.goto(base)
     b.js('localStorage.clear(); true')
-    b.goto(base + '?e2e=1')
-    for _ in range(300):
-        if b.js("location.search === '?e2e=1' && !!window.dreesApp && document.querySelectorAll('#theme-picker .card').length === 5"):
+    query = '?no3d=1' if os.environ.get('NO3D') else '?quality=low'
+    b.goto(base + query)
+    for _ in range(1800):
+        if b.js(f"location.search === '{query}' && !!window.dreesApp && document.querySelectorAll('#theme-picker .card').length === 5"):
             break
         time.sleep(0.1)
+    else:
+        raise TimeoutError('the app did not boot')
     b.js(HELPERS)
 
 
@@ -257,11 +261,12 @@ def main():
     else:
         device = mode
         levels = args[1].split(',') if len(args) > 1 else ['easy', 'medium', 'hard', 'expert']
-        theme = args[2] if len(args) > 2 else 'wood'
-        piece = args[3] if len(args) > 3 else 'stone'
+        theme = args[2] if len(args) > 2 else 'marble'
+        piece = args[3] if len(args) > 3 else 'pawn'
         base = args[4] if len(args) > 4 else 'http://localhost:8000/'
     touch = device == 'mobile'
-    b = Browser(width=390, height=844, scale=2, mobile=True) if touch else Browser(width=1280, height=800, scale=1)
+    width, height = map(int, os.environ.get('VIEW', '1280x800').split('x'))  # software rendering cost follows the pixels
+    b = Browser(width=390, height=844, scale=2, mobile=True) if touch else Browser(width=width, height=height, scale=1)
     pl = Player(b, touch, random.Random(1))
     failed = False
     try:
@@ -269,8 +274,7 @@ def main():
         if mode == 'campaign':
             run_campaign(b, pl, os.path.join(shot_dir, f'camp_{device}') if shot_dir else None)
         else:
-            pl.press(*b.js(f"__e2e.center('#theme-picker .card:nth-child({THEMES.index(theme) + 1})')"))
-            pl.press(*b.js(f"__e2e.center('#piece-picker .card:nth-child({PIECES.index(piece) + 1})')"))
+            b.js(f"dreesApp.setSetting('theme', '{theme}'); dreesApp.setSetting('piece', '{piece}'); true")
             for lvl in levels:
                 print(f'[{device}] level={lvl} theme={theme} piece={piece}', flush=True)
                 prefix = os.path.join(shot_dir, f'{device}_{lvl}_{theme}') if shot_dir else None

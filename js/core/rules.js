@@ -12,7 +12,8 @@
  * Flow (classic rules):
  *  1. Placement — the toss winner (`starter`) places all 3 pieces one by one,
  *     then the other player places 3 pieces in the remaining empty cells.
- *     No win is ever counted during placement, even if a line forms by chance.
+ *     Nobody may complete a line of their own pieces while placing — row,
+ *     column or diagonal — so a line can only ever be made by moving.
  *  2. Movement — the starter moves first; each turn moves one own piece to any
  *     empty cell (not necessarily adjacent). A player wins when, after their
  *     move, their 3 pieces form a horizontal or vertical line. Diagonals never win.
@@ -70,6 +71,7 @@ export const Reason = Object.freeze({
   OUT_OF_RANGE: 'out-of-range',
   BLOCKED_CELL: 'blocked-cell',
   CELL_OCCUPIED: 'cell-occupied',
+  FORMS_LINE: 'forms-line',
   NOT_YOUR_PIECE: 'not-your-piece',
   SAME_CELL: 'same-cell',
   NOT_ADJACENT: 'not-adjacent',
@@ -132,6 +134,38 @@ export function linesFor(v) {
   }
   lineByObject.set(v, lines);
   return lines;
+}
+
+const placementLineCache = new Map();
+/**
+ * Lines nobody may complete while placing: every row, column and diagonal
+ * (whether or not it wins in this variant), except lines through sealed cells.
+ */
+export function placementLines(v) {
+  const key = variantKey(v);
+  let lines = placementLineCache.get(key);
+  if (!lines) {
+    const n = normalizeVariant(v);
+    lines = [...LINES, ...DIAGONALS].filter((l) => !l.some((c) => n.blocked.includes(c)));
+    placementLineCache.set(key, lines);
+  }
+  return lines;
+}
+
+/** Would placing `player` on `cell` complete a line of their own pieces? */
+export function formsLine(board, player, cell, v) {
+  for (const line of placementLines(v)) {
+    if (!line.includes(cell)) continue;
+    if (line.every((c) => c === cell || board[c] === player)) return true;
+  }
+  return false;
+}
+
+/** Empty cells where `player` may place a piece. */
+export function legalPlacements(board, player, v) {
+  const out = [];
+  for (let i = 0; i < CELL_COUNT; i++) if (board[i] === null && !formsLine(board, player, i, v)) out.push(i);
+  return out;
 }
 
 /** Whether a piece may travel from `from` to `to` under the variant's move rule. */
@@ -295,6 +329,7 @@ export function validateAction(state, action) {
     if (!isCell(action.to)) return fail(Reason.OUT_OF_RANGE);
     if (state.board[action.to] === BLOCKED) return fail(Reason.BLOCKED_CELL);
     if (state.board[action.to] !== null) return fail(Reason.CELL_OCCUPIED);
+    if (formsLine(state.board, action.player, action.to, variantOf(state))) return fail(Reason.FORMS_LINE);
     return OK;
   }
 
@@ -328,7 +363,7 @@ export function legalActions(state) {
   if (state.phase === Phase.OVER) return [];
   const player = state.turn;
   if (state.phase === Phase.PLACEMENT) {
-    return emptyCells(state.board).map((to) => ({ type: ActionType.PLACE, player, to }));
+    return legalPlacements(state.board, player, variantOf(state)).map((to) => ({ type: ActionType.PLACE, player, to }));
   }
   const out = [];
   for (const from of cellsOf(state.board, player)) {
@@ -362,8 +397,7 @@ export function applyAction(state, action) {
     placed[player]++;
     next.placed = placed;
     if (placed[0] === PIECES_PER_PLAYER && placed[1] === PIECES_PER_PLAYER) {
-      // Placement is over: the starter opens the movement phase.
-      // Lines formed while placing are deliberately ignored.
+      // Placement is over (no line can exist yet): the starter opens the movement phase.
       next.phase = Phase.MOVEMENT;
       next.turn = state.starter;
       next.positions = { [positionKey(board, next.turn)]: 1 };

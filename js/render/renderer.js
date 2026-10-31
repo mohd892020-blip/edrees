@@ -25,10 +25,10 @@ const rgba = ([r, g, b], a) => `rgba(${r},${g},${b},${a})`;
 export const cellCenter = (cell) => ({ x: (cell % 3) - 1, y: Math.floor(cell / 3) - 1 });
 
 export class Renderer {
-  constructor(canvas, { onImpact = null, onLift = null, getInsets = null } = {}) {
+  constructor(canvas, { onImpact = null, onLift = null, getInsets = null, webgl = false } = {}) {
     this.canvas = canvas;
     this.getInsets = getInsets;
-    this.ctx = canvas.getContext('2d');
+    this.ctx = webgl ? null : canvas.getContext('2d'); // the 3D world subclass brings its own context
     this.camera = new Camera({ tiltDeg: 30, distance: 9 });
     this.static = makeCanvas(1, 1);
     this.theme = THEMES.wood;
@@ -53,6 +53,7 @@ export class Renderer {
     this.thinking = null;
     this.dangerCells = [];
     this.blockedCells = [];
+    this.forbiddenCells = []; // placements that would complete a line
     this.hint = null; // { pieceId, to } suggested move
 
     this.time = 0;
@@ -288,8 +289,9 @@ export class Renderer {
   /** Puts all six pieces back in their trays. `seed` varies their natural look. */
   resetPieces(seed = Math.floor(Math.random() * 1e6)) {
     this.seed = seed;
-    this.tweens.forEach((tw) => tw.resolve());
-    this.tweens = [];
+    // Piece animations end here; `keep` tweens (the camera glide) carry on.
+    this.tweens.filter((tw) => !tw.keep).forEach((tw) => tw.resolve());
+    this.tweens = this.tweens.filter((tw) => tw.keep);
     this.pieces = [];
     for (const owner of [0, 1]) {
       for (let idx = 0; idx < 3; idx++) {
@@ -310,6 +312,7 @@ export class Renderer {
     this.confetti = [];
     this.thinking = null;
     this.dangerCells = [];
+    this.forbiddenCells = [];
     this.hint = null;
     this.interactiveCells = [];
     this.interactivePieces = [];
@@ -715,6 +718,9 @@ export class Renderer {
       ctx.restore();
     }
 
+    // Placements forbidden because they would complete a line: a red cross.
+    for (const cell of this.forbiddenCells) this._drawForbidden(cell);
+
     // Danger cells (opponent can win there next move) — subtle red pulse.
     for (const cell of this.dangerCells) {
       this._cellPath(cell, 0.3);
@@ -814,6 +820,31 @@ export class Renderer {
       else ctx.moveTo(p.x, p.y);
     });
     ctx.closePath();
+  }
+
+  _drawForbidden(cell) {
+    const ctx = this.ctx;
+    const cam = this.camera;
+    const { x, y } = cellCenter(cell);
+    this._cellPath(cell, 0.18);
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,70,70,0.10)';
+    ctx.fill();
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 3.2 * this.dpr;
+    ctx.strokeStyle = 'rgba(255,95,95,0.75)';
+    ctx.shadowColor = 'rgba(255,60,60,0.6)';
+    ctx.shadowBlur = 8 * this.dpr;
+    const d = 0.17;
+    for (const [ax, ay, bx, by] of [[-d, -d, d, d], [d, -d, -d, d]]) {
+      const p = cam.project(x + ax, y + ay, 0);
+      const q = cam.project(x + bx, y + by, 0);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(q.x, q.y);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   /** A sealed cell: a raised granite block sitting in the square. */

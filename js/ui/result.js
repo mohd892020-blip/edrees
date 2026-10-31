@@ -62,7 +62,7 @@ export function showResult({ info, stats = null, stars = null, caption = '', but
     const el = document.createElement('button');
     el.type = 'button';
     el.id = `btn-${b.id}`;
-    el.className = `btn ${b.primary ? 'btn-primary' : 'btn-ghost'}`;
+    el.className = `btn ${b.primary ? 'btn-gold' : 'btn-lacquer'}`;
     el.textContent = b.label;
     el.dataset.choice = b.id;
     actions.appendChild(el);
@@ -70,7 +70,7 @@ export function showResult({ info, stats = null, stars = null, caption = '', but
 
   modal.hidden = false;
   requestAnimationFrame(() => modal.classList.add('open'));
-  const first = actions.querySelector('.btn-primary') || actions.firstChild;
+  const first = actions.querySelector('.btn-gold') || actions.firstChild;
   if (first) first.focus({ preventScroll: true });
 
   return new Promise((resolve) => {

@@ -26,7 +26,7 @@ export const CHAPTERS = [
   {
     id: 1,
     title: 'البداية',
-    theme: 'wood',
+    theme: 'marble',
     variant: CLASSIC,
     rule: 'القواعد الكلاسيكية',
     ruleDesc: 'الحركة إلى أي مربع فارغ، والفوز بخط أفقي أو عمودي.',
@@ -58,7 +58,7 @@ export const CHAPTERS = [
       },
       {
         id: '1-6', kind: 'boss', title: 'أبو حجر', boss: 'أبو حجر',
-        desc: 'زعيم الخشب يعاقب كل خطأ. لا تخسر خلال 20 حركة، وإن هزمته فلك النجمة الثالثة.',
+        desc: 'زعيم الرخام يعاقب كل خطأ. لا تخسر خلال 20 حركة، وإن هزمته فلك النجمة الثالثة.',
         opponent: 'hard', setup: { type: 'toss' }, goal: { type: 'survive', moves: 20 }, bonus: { type: 'win' },
       },
     ],
@@ -141,7 +141,7 @@ export const CHAPTERS = [
   {
     id: 4,
     title: 'الحجر في الوسط',
-    theme: 'marble',
+    theme: 'wood',
     variant: { moves: MoveRule.ORTH, blocked: [4] },
     rule: 'الوسط مغلق',
     ruleDesc: 'المربع الأوسط مغلق بحجر، والقطعة تتحرك خطوة واحدة أفقياً أو عمودياً. ومن يُحاصَر يخسر.',
@@ -162,7 +162,7 @@ export const CHAPTERS = [
         opponent: 'expert', setup: { type: 'puzzle', plies: 5, pick: 0 }, goal: { type: 'win', limit: 3 }, bonus: { type: 'firstTry' },
       },
       {
-        id: '4-4', kind: 'boss', title: 'حارس الرخام', boss: 'حارس الرخام',
+        id: '4-4', kind: 'boss', title: 'حارس الأبنوس', boss: 'حارس الأبنوس',
         desc: 'سرّ هذه القاعدة: من يصفّ ثانياً يستطيع الفوز دائماً إن لعب بإتقان. الحارس يبدأ وأنت الثاني، فاهزم الخبير!',
         opponent: 'expert', setup: { type: 'fixed', starter: 1 }, goal: { type: 'win' }, bonus: { type: 'firstTry' },
       },

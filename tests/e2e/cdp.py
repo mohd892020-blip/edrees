@@ -33,6 +33,7 @@ class Browser:
              f'--user-data-dir={tempfile.mkdtemp(prefix="drees-chrome-")}', '--no-first-run',
              '--no-default-browser-check', '--autoplay-policy=no-user-gesture-required',
              '--disable-background-timer-throttling', '--disable-renderer-backgrounding',
+             '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl',
              f'--window-size={width},{height}', 'about:blank'],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         page = None

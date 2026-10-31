@@ -4,7 +4,7 @@
  * Every candidate action is checked with the pure rules before being sent,
  * and once a piece is dropped on a valid cell the move is final.
  */
-import { Phase, ActionType, BLOCKED, CLASSIC, validateAction, legalTargets } from '../core/rules.js';
+import { Phase, ActionType, BLOCKED, CLASSIC, validateAction, legalTargets, legalPlacements } from '../core/rules.js';
 import { refusalText } from './text.js';
 
 const DRAG_THRESHOLD = 7; // CSS px
@@ -95,6 +95,7 @@ export class InputController {
   _refresh() {
     const r = this.r;
     const st = this._state;
+    r.forbiddenCells = [];
     if (!st) {
       r.interactiveCells = [];
       r.interactivePieces = [];
@@ -103,9 +104,12 @@ export class InputController {
     }
     const dragging = this.ptr && this.ptr.dragging;
     if (st.phase === Phase.PLACEMENT) {
-      const empty = [];
-      st.board.forEach((v, i) => v === null && empty.push(i));
-      r.interactiveCells = empty;
+      // Cells that would complete a line are not allowed: they get a red cross instead.
+      const legal = legalPlacements(st.board, this.pending.player, this._variant);
+      r.interactiveCells = legal;
+      st.board.forEach((v, i) => {
+        if (v === null && !legal.includes(i)) r.forbiddenCells.push(i);
+      });
       r.interactivePieces = r.selected || dragging ? [] : r.pieces.filter((p) => this._ownTray(p));
     } else {
       const active = dragging ? this.ptr.piece : r.selected;
@@ -283,7 +287,8 @@ export class InputController {
     }
     if (st.phase === Phase.PLACEMENT) {
       const sel = this.r.selected;
-      this._placeAt(cell, 'tap', sel ? sel.id : null);
+      const reason = this._placeAt(cell, 'tap', sel ? sel.id : null);
+      if (reason) this._invalid(reason);
       return;
     }
     if (this.r.selected) {

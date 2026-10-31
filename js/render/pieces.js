@@ -465,6 +465,94 @@ function paintPit(ctx, team, rng) {
   ctx.restore();
 }
 
+// ───────────────────────────── royal pawns ─────────────────────────────
+
+function paintPawn(ctx, team) {
+  const pal = team === 0
+    ? ['#fff4c8', '#f2c75a', '#a8761c', '#5e3f0a']
+    : ['#ffffff', '#dfe4ec', '#98a0ac', '#4a505a'];
+  const metal = (r, cy = 0) => {
+    const g = ctx.createRadialGradient(-r * 0.35, cy - r * 0.42, r * 0.05, 0, cy, r * 1.15);
+    g.addColorStop(0, pal[0]);
+    g.addColorStop(0.42, pal[1]);
+    g.addColorStop(0.82, pal[2]);
+    g.addColorStop(1, pal[3]);
+    return g;
+  };
+  ctx.fillStyle = pal[3];
+  ctx.beginPath();
+  ctx.arc(0, 0.12, 1, 0, TAU);
+  ctx.fill();
+  for (const [r, cy] of [[1, 0.04], [0.74, 0], [0.5, -0.04]]) {
+    ctx.fillStyle = metal(r, cy);
+    ctx.beginPath();
+    ctx.arc(0, cy, r, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(70,45,5,0.45)';
+    ctx.lineWidth = 0.025;
+    ctx.stroke();
+  }
+  const sp = ctx.createRadialGradient(-0.2, -0.26, 0, -0.2, -0.26, 0.28);
+  sp.addColorStop(0, 'rgba(255,255,255,0.95)');
+  sp.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = sp;
+  ctx.fillRect(-1.1, -1.1, 2.2, 2.2);
+}
+
+// ───────────────────────────── gems ─────────────────────────────
+
+function paintGem(ctx, team) {
+  const c = team === 0
+    ? { hi: '#b9ffdf', mid: '#16b873', lo: '#04492d' }
+    : { hi: '#ffb3bd', mid: '#e3122f', lo: '#5e0512' };
+  const n = 8;
+  const pt = (r, i) => {
+    const a = (i / n) * TAU - Math.PI / 8;
+    return [Math.cos(a) * r, Math.sin(a) * r];
+  };
+  // Gold setting.
+  ctx.beginPath();
+  ctx.arc(0, 0.04, 1.05, 0, TAU);
+  const g = ctx.createRadialGradient(-0.4, -0.5, 0.1, 0, 0, 1.2);
+  g.addColorStop(0, '#fff4c8');
+  g.addColorStop(0.6, '#d9a93f');
+  g.addColorStop(1, '#6b480c');
+  ctx.fillStyle = g;
+  ctx.fill();
+  // Facets, lit from the top-left.
+  const R = 0.9;
+  const T = 0.5;
+  const la = Math.atan2(LIGHT.y, LIGHT.x);
+  for (let i = 0; i < n; i++) {
+    const a0 = pt(R, i);
+    const a1 = pt(R, i + 1);
+    const b0 = pt(T, i);
+    const b1 = pt(T, i + 1);
+    const mid = ((i + 0.5) / n) * TAU - Math.PI / 8;
+    const lit = 0.5 + 0.5 * Math.cos(mid - la);
+    ctx.fillStyle = lit > 0.62 ? c.hi : lit > 0.3 ? c.mid : c.lo;
+    ctx.beginPath();
+    ctx.moveTo(...a0);
+    ctx.lineTo(...a1);
+    ctx.lineTo(...b1);
+    ctx.lineTo(...b0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 0.015;
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) ctx.lineTo(...pt(T, i));
+  ctx.closePath();
+  const t = ctx.createLinearGradient(-0.5, -0.5, 0.5, 0.5);
+  t.addColorStop(0, c.hi);
+  t.addColorStop(0.55, c.mid);
+  t.addColorStop(1, c.lo);
+  ctx.fillStyle = t;
+  ctx.fill();
+}
+
 // ───────────────────────────── registry ─────────────────────────────
 
 /** `size` = world diameter of the piece (a cell is 1). */
@@ -474,11 +562,15 @@ export const PIECES = {
   stick: { id: 'stick', name: 'عيدان خشب', size: 0.84, paint: paintSticks },
   cap: { id: 'cap', name: 'أغطية زجاجات', size: 0.62, paint: paintCap },
   pit: { id: 'pit', name: 'نوى زيتون', size: 0.66, paint: paintPit },
+  pawn: { id: 'pawn', name: 'بيادق ملكية', size: 0.5, paint: paintPawn },
+  gem: { id: 'gem', name: 'جواهر', size: 0.6, paint: paintGem },
 };
-export const PIECE_ORDER = ['stone', 'butt', 'stick', 'cap', 'pit'];
+export const PIECE_ORDER = ['pawn', 'gem', 'stone', 'cap', 'stick', 'pit', 'butt'];
 
 /** The computer always uses a different, well-contrasting piece. */
-export const OPPONENT_PIECE = { stone: 'cap', butt: 'pit', stick: 'stone', cap: 'stone', pit: 'butt' };
+export const OPPONENT_PIECE = {
+  stone: 'cap', butt: 'pit', stick: 'stone', cap: 'stone', pit: 'butt', pawn: 'gem', gem: 'pawn',
+};
 
 export const SPRITE_SPAN = SPAN;
 

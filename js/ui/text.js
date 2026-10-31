@@ -24,6 +24,8 @@ export function refusalText(reason, variant) {
       return 'هذا المربع مشغول — اختر مربعاً فارغاً';
     case 'blocked-cell':
       return 'هذا المربع مغلق بحجر';
+    case 'forms-line':
+      return 'لا يجوز أن تصفّ قطعك الثلاث في خط واحد (أفقي أو عمودي أو قطري)';
     case 'not-adjacent':
       return variant && variant.moves === MoveRule.ORTH
         ? 'هنا تتحرك القطعة خطوة واحدة أفقياً أو عمودياً'

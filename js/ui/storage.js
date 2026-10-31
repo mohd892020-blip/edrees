@@ -1,10 +1,11 @@
 /** Persistent preferences and win counters (localStorage, fails gracefully). */
 
 const KEY = 'drees:v1';
+const LOOK_VERSION = 2;
 
 export const DEFAULT_SETTINGS = Object.freeze({
-  theme: 'wood',
-  piece: 'stone',
+  theme: 'marble',
+  piece: 'pawn',
   level: 'medium',
   volume: 0.8,
   muted: false,
@@ -39,7 +40,14 @@ export function loadData() {
       if (v) campaign.stars[id] = v;
     }
   }
-  return { settings: { ...DEFAULT_SETTINGS, ...(raw && raw.settings) }, stats, campaign };
+  const settings = { ...DEFAULT_SETTINGS, ...(raw && raw.settings) };
+  // One-time move to the current look; players can pick anything again afterwards.
+  if (settings.look !== LOOK_VERSION) {
+    settings.theme = DEFAULT_SETTINGS.theme;
+    settings.piece = DEFAULT_SETTINGS.piece;
+    settings.look = LOOK_VERSION;
+  }
+  return { settings, stats, campaign };
 }
 
 export function saveData(data) {

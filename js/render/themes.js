@@ -98,7 +98,7 @@ const gridPath = (ctx, segs = GRID_SEGMENTS, dx = 0, dy = 0) => {
 
 const wood = {
   id: 'wood',
-  name: 'خشب محفور فاخر',
+  name: 'أبنوس وذهب',
   surface: 'wood',
   seed: 11,
   slab: { half: 1.8, radius: 0.14, thickness: 0.26 },
@@ -106,7 +106,7 @@ const wood = {
   highlight: [255, 214, 140],
   win: [255, 200, 90],
   particles: ['#d9ae75', '#9b6a3c', '#f0d29d'],
-  ui: { accent: '#e9bd73', accent2: '#9a6431', glow: 'rgba(233,189,115,0.45)' },
+  ui: { accent: '#f6e3ae', accent2: '#b09a68', glow: 'rgba(246,227,174,0.42)' },
 
   backdrop(ctx, w, h) {
     radialBackdrop(ctx, w, h, [[0, '#24503d'], [0.55, '#122b20'], [1, '#050d0a']]);
@@ -258,7 +258,7 @@ function goldStroke(ctx, pathFn, w, H) {
 
 const marble = {
   id: 'marble',
-  name: 'رخام بخطوط ذهبية',
+  name: 'رخام وذهب',
   surface: 'marble',
   seed: 23,
   slab: { half: 1.8, radius: 0.08, thickness: 0.24 },
@@ -266,7 +266,7 @@ const marble = {
   highlight: [255, 214, 120],
   win: [255, 196, 60],
   particles: ['#ffffff', '#efe9dc', '#e5c56b'],
-  ui: { accent: '#e6c46c', accent2: '#8d6a1f', glow: 'rgba(230,196,108,0.45)' },
+  ui: { accent: '#f6e3ae', accent2: '#b09a68', glow: 'rgba(246,227,174,0.42)' },
 
   backdrop(ctx, w, h) {
     radialBackdrop(ctx, w, h, [[0, '#2a2a33'], [0.6, '#15151b'], [1, '#060608']]);
@@ -372,24 +372,34 @@ function wobbly(noise, x1, y1, x2, y2, seed, overshoot = 0.06) {
   return pts;
 }
 
+/** Sinks the rim of a ground into the dark room, so its edge never shows. */
+function fadeToNight(ctx, E) {
+  if (E <= 3.2) return;
+  const g = ctx.createRadialGradient(0, 0, E * 0.6, 0, 0, E * 0.96);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,1)');
+  ctx.fillStyle = g;
+  ctx.fillRect(-E, -E, 2 * E, 2 * E);
+}
+
 const sand = {
   id: 'sand',
-  name: 'مرسومة على الرمل',
+  name: 'رمال القمر',
   surface: 'sand',
   seed: 37,
   slab: null,
-  highlight: [255, 255, 240],
+  highlight: [235, 242, 255],
   win: [255, 236, 170],
-  particles: ['#e2c08a', '#c9a066', '#f2dcb2'],
-  ui: { accent: '#f3d79e', accent2: '#a97b3f', glow: 'rgba(243,215,158,0.5)' },
+  particles: ['#cfd8ea', '#9fb0d0', '#eef2fb'],
+  ui: { accent: '#dfe8ff', accent2: '#7f93c4', glow: 'rgba(223,232,255,0.5)' },
 
   backdrop(ctx, w, h) {
-    radialBackdrop(ctx, w, h, [[0, '#e7cf9f'], [0.6, '#cfae77'], [1, '#9c7a48']]);
+    radialBackdrop(ctx, w, h, [[0, '#2a3558'], [0.6, '#141d3a'], [1, '#070b1c']]);
   },
 
   paintWorld(ctx, { E, k, noise, rng, q }) {
-    const a = hex('#efdbb0');
-    const b = hex('#d1ad76');
+    const a = hex('#bcc6da');
+    const b = hex('#8a97b4');
     const field = pixelField(res(600, q), res(600, q), (u, v, o) => {
       const x = (u - 0.5) * 2 * E;
       const y = (v - 0.5) * 2 * E;
@@ -401,23 +411,23 @@ const sand = {
       o[2] *= s;
     });
     ctx.drawImage(field, -E, -E, 2 * E, 2 * E);
-    overlayGrain(ctx, grainTile(128, 9, ['#8e6b3c', '#fff6dc', '#b88d55', '#6f5330'], 1.6, 0.9), 0.55);
+    overlayGrain(ctx, grainTile(128, 9, ['#5c6a8c', '#f4f7ff', '#8493b5', '#3e4a68'], 1.6, 0.9), 0.55);
 
-    // Sunlight.
+    // Moonlight.
     const sun = ctx.createRadialGradient(-1.2, -1.6, 0, -1.2, -1.6, E * 1.4);
-    sun.addColorStop(0, 'rgba(255,248,225,0.22)');
-    sun.addColorStop(1, 'rgba(120,80,30,0.12)');
+    sun.addColorStop(0, 'rgba(240,245,255,0.22)');
+    sun.addColorStop(1, 'rgba(20,30,70,0.16)');
     ctx.fillStyle = sun;
     ctx.fillRect(-E, -E, 2 * E, 2 * E);
 
     // Finger strokes: each pass draws all grooves so walls overlap naturally.
     const strokes = GRID_SEGMENTS.map((s, i) => wobbly(noise, s[0], s[1], s[2], s[3], i * 1.37 + 0.5));
     const passes = [
-      { dx: 0, dy: 0, w: 0.16, c: 'rgba(146,106,56,0.30)', blur: 0.035 },
-      { dx: -0.018, dy: -0.022, w: 0.075, c: 'rgba(103,70,32,0.55)', blur: 0.012 },
-      { dx: 0.014, dy: 0.016, w: 0.05, c: 'rgba(218,186,135,0.6)', blur: 0.008 },
-      { dx: -0.082, dy: -0.088, w: 0.03, c: 'rgba(255,247,226,0.38)', blur: 0.016 },
-      { dx: 0.078, dy: 0.082, w: 0.03, c: 'rgba(255,240,212,0.22)', blur: 0.016 },
+      { dx: 0, dy: 0, w: 0.16, c: 'rgba(70,88,130,0.30)', blur: 0.035 },
+      { dx: -0.018, dy: -0.022, w: 0.075, c: 'rgba(34,46,84,0.55)', blur: 0.012 },
+      { dx: 0.014, dy: 0.016, w: 0.05, c: 'rgba(170,184,214,0.6)', blur: 0.008 },
+      { dx: -0.082, dy: -0.088, w: 0.03, c: 'rgba(244,248,255,0.38)', blur: 0.016 },
+      { dx: 0.078, dy: 0.082, w: 0.03, c: 'rgba(232,238,255,0.22)', blur: 0.016 },
     ];
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -447,20 +457,20 @@ const sand = {
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(rng() * TAU);
-      ctx.fillStyle = 'rgba(80,55,25,0.3)';
+      ctx.fillStyle = 'rgba(20,28,60,0.35)';
       ctx.beginPath();
       ctx.ellipse(0.012, 0.016, r, r * 0.8, 0, 0, TAU);
       ctx.fill();
       const g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, 0, 0, 0, r);
-      g.addColorStop(0, '#fff8ee');
-      g.addColorStop(1, '#d8b8a0');
+      g.addColorStop(0, '#fbfcff');
+      g.addColorStop(1, '#b7c2dc');
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.moveTo(0, r * 0.8);
       ctx.arc(0, 0, r, Math.PI * 0.75, Math.PI * 2.25);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = 'rgba(150,110,90,0.5)';
+      ctx.strokeStyle = 'rgba(90,105,145,0.5)';
       ctx.lineWidth = 0.006;
       for (let j = -3; j <= 3; j++) {
         ctx.beginPath();
@@ -470,6 +480,7 @@ const sand = {
       }
       ctx.restore();
     }
+    fadeToNight(ctx, E);
   },
 };
 
@@ -506,35 +517,35 @@ function chalkLine(ctx, rng, x1, y1, x2, y2, color, w = 0.06) {
 
 const chalk = {
   id: 'chalk',
-  name: 'طباشير على إسفلت حار',
+  name: 'طباشير على إسفلت',
   surface: 'asphalt',
   seed: 53,
   slab: null,
   highlight: [255, 255, 255],
   win: [255, 230, 110],
   particles: ['#ffffff', '#f4f0e6', '#ffe680'],
-  ui: { accent: '#ffe27a', accent2: '#ff8fb1', glow: 'rgba(255,226,122,0.45)' },
+  ui: { accent: '#f6e3ae', accent2: '#9fb6e8', glow: 'rgba(246,227,174,0.45)' },
 
   backdrop(ctx, w, h) {
-    radialBackdrop(ctx, w, h, [[0, '#5a5551'], [0.6, '#3a3735'], [1, '#1b1a19']]);
+    radialBackdrop(ctx, w, h, [[0, '#2c2f38'], [0.6, '#181a21'], [1, '#0a0b10']]);
   },
 
   paintWorld(ctx, { E, noise, rng, q }) {
-    const base = hex('#555250');
-    const dark = hex('#2f2d2c');
+    const base = hex('#34373f');
+    const dark = hex('#181a20');
     const field = pixelField(res(560, q), res(560, q), (u, v, o) => {
       const x = (u - 0.5) * 2 * E;
       const y = (v - 0.5) * 2 * E;
       mixRGB(base, dark, noise.fbm(x * 0.45, y * 0.45, 4) * 0.85, o);
       const s = 0.88 + noise.noise(x * 16, y * 16) * 0.24;
-      o[0] *= s * 1.03;
+      o[0] *= s * 0.98;
       o[1] *= s;
-      o[2] *= s * 0.96;
+      o[2] *= s * 1.05;
     });
     ctx.drawImage(field, -E, -E, 2 * E, 2 * E);
 
     // Aggregate stones in the asphalt.
-    const colors = [['#8f8a83', 0.5], ['#aaa398', 0.35], ['#1a1918', 0.6], ['#6d6862', 0.5], ['#c2b8a8', 0.25]];
+    const colors = [['#6d7280', 0.5], ['#8a8f9c', 0.35], ['#0f1014', 0.6], ['#4f535e', 0.5], ['#a6abb8', 0.2]];
     const count = Math.floor(E * E * 900);
     for (let i = 0; i < count; i++) {
       const [c, a] = colors[Math.floor(rng() * colors.length)];
@@ -557,7 +568,7 @@ const chalk = {
         y += Math.sin(a) * 0.06;
         pts.push([x, y]);
       }
-      for (const [col, w, d] of [['rgba(170,165,155,0.25)', 0.014, 0.008], ['rgba(10,10,10,0.75)', 0.012, 0]]) {
+      for (const [col, w, d] of [['rgba(140,146,160,0.2)', 0.014, 0.008], ['rgba(10,10,10,0.75)', 0.012, 0]]) {
         ctx.strokeStyle = col;
         ctx.lineWidth = w;
         ctx.beginPath();
@@ -566,11 +577,11 @@ const chalk = {
       }
     }
 
-    // Hot afternoon sun.
+    // A cold pool of street light.
     const heat = ctx.createRadialGradient(-1.4, -2.2, 0, -1.4, -2.2, E * 1.6);
-    heat.addColorStop(0, 'rgba(255,196,120,0.20)');
-    heat.addColorStop(0.5, 'rgba(255,150,80,0.07)');
-    heat.addColorStop(1, 'rgba(0,0,0,0.12)');
+    heat.addColorStop(0, 'rgba(200,215,255,0.10)');
+    heat.addColorStop(0.5, 'rgba(120,140,200,0.04)');
+    heat.addColorStop(1, 'rgba(0,0,0,0.2)');
     ctx.fillStyle = heat;
     ctx.fillRect(-E, -E, 2 * E, 2 * E);
 
@@ -582,32 +593,8 @@ const chalk = {
     for (const [x1, y1, x2, y2] of GRID_SEGMENTS) chalkLine(lc, crng, x1, y1, x2, y2, '#f8f6ef', 0.07);
     const F = 1.72;
     for (const [x1, y1, x2, y2] of [[-F, -F, F, -F], [F, -F, F, F], [F, F, -F, F], [-F, F, -F, -F]]) {
-      chalkLine(lc, crng, x1, y1, x2, y2, '#ffe27a', 0.045);
+      chalkLine(lc, crng, x1, y1, x2, y2, '#f6e3ae', 0.045);
     }
-    // Doodles in the corners: sun, heart, star.
-    const sx = -2.5;
-    const sy = -2.6;
-    const sunPts = [];
-    for (let i = 0; i <= 16; i++) sunPts.push([sx + Math.cos((i / 16) * TAU) * 0.2, sy + Math.sin((i / 16) * TAU) * 0.2]);
-    for (let i = 0; i < 16; i++) chalkLine(lc, crng, ...sunPts[i], ...sunPts[i + 1], '#ffd34d', 0.04);
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * TAU;
-      chalkLine(lc, crng, sx + Math.cos(a) * 0.28, sy + Math.sin(a) * 0.28, sx + Math.cos(a) * 0.42, sy + Math.sin(a) * 0.42, '#ffd34d', 0.035);
-    }
-    const hx = 2.5;
-    const hy = 2.6;
-    const heart = [];
-    for (let i = 0; i <= 24; i++) {
-      const t = (i / 24) * TAU;
-      heart.push([hx + 0.018 * 16 * Math.sin(t) ** 3, hy - 0.018 * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t))]);
-    }
-    for (let i = 0; i < 24; i++) chalkLine(lc, crng, ...heart[i], ...heart[i + 1], '#ff8fb1', 0.04);
-    const st = [];
-    for (let i = 0; i <= 5; i++) {
-      const a = -Math.PI / 2 + (i * 4 * Math.PI) / 5;
-      st.push([2.5 + Math.cos(a) * 0.26, -2.6 + Math.sin(a) * 0.26]);
-    }
-    for (let i = 0; i < 5; i++) chalkLine(lc, crng, ...st[i], ...st[i + 1], '#8fd3ff', 0.04);
 
     lc.setTransform(1, 0, 0, 1, 0, 0);
     lc.globalCompositeOperation = 'destination-out';
@@ -615,6 +602,7 @@ const chalk = {
     lc.fillStyle = lc.createPattern(grainTile(96, 13, ['#000'], 2.4, 1.2), 'repeat');
     lc.fillRect(0, 0, layer.width, layer.height);
     pixelSpace(ctx, () => ctx.drawImage(layer, 0, 0));
+    fadeToNight(ctx, E);
   },
 };
 
@@ -742,7 +730,7 @@ const neon = {
 };
 
 export const THEMES = { wood, marble, sand, chalk, neon };
-export const THEME_ORDER = ['wood', 'marble', 'sand', 'chalk', 'neon'];
+export const THEME_ORDER = ['marble', 'wood', 'neon', 'sand', 'chalk'];
 
 /**
  * Paints the theme's world texture into a new canvas of `size` px covering

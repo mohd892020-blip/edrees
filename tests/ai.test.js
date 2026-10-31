@@ -1,5 +1,5 @@
 import { describe, test, assert } from './harness.js';
-import { createGame, applyAction, validateAction, Phase, winningCells, replay } from '../js/core/rules.js';
+import { createGame, applyAction, validateAction, legalActions, Phase, winningCells, replay } from '../js/core/rules.js';
 import { chooseAction, LEVELS } from '../js/ai/ai.js';
 import { getSolver, encode, WIN, LOSS, DRAW } from '../js/ai/solver.js';
 import { mulberry32 } from '../js/core/rng.js';
@@ -24,10 +24,8 @@ function playGame(levels, starter, rng, onAction) {
 }
 
 function randomAction(s, rng) {
-  const empty = s.board.flatMap((v, i) => (v === null ? [i] : []));
-  if (s.phase === Phase.PLACEMENT) return place(s.turn, empty[Math.floor(rng() * empty.length)]);
-  const own = s.board.flatMap((v, i) => (v === s.turn ? [i] : []));
-  return move(s.turn, own[Math.floor(rng() * own.length)], empty[Math.floor(rng() * empty.length)]);
+  const acts = legalActions(s);
+  return acts[Math.floor(rng() * acts.length)];
 }
 
 describe('solver', () => {

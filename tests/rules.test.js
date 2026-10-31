@@ -46,7 +46,7 @@ describe('placement phase', () => {
     assert.equal(s.turn, 1);
     s = applyAction(s, place(1, 4));
     assert.equal(s.turn, 1);
-    s = applyAction(s, place(1, 8));
+    s = applyAction(s, place(1, 7));
     assert.equal(s.turn, 0, 'second player starts placing after starter finished');
     s = applyAction(s, place(0, 1));
     s = applyAction(s, place(0, 2));
@@ -80,41 +80,52 @@ describe('placement phase', () => {
     assert.equal(validateAction(s, move(0, 0, 1)).reason, Reason.WRONG_PHASE);
   });
 
-  test('a line formed by the starter while placing is NOT a win', () => {
+  test('the starter cannot complete a row while placing', () => {
     let s = createGame({ starter: 0 });
-    for (const c of [0, 1, 2]) s = applyAction(s, place(0, c));
-    assert.equal(s.winner, null);
-    assert.equal(s.phase, Phase.PLACEMENT);
-    for (const c of [3, 4, 6]) s = applyAction(s, place(1, c));
-    assert.equal(s.winner, null);
-    assert.equal(s.phase, Phase.MOVEMENT);
+    for (const c of [0, 1]) s = applyAction(s, place(0, c));
+    assert.equal(validateAction(s, place(0, 2)).reason, Reason.FORMS_LINE);
+    assert.ok(validateAction(s, place(0, 5)).ok, 'any other cell is fine');
   });
 
-  test('a line formed by the second player at the end of placement is NOT a win', () => {
-    let s = createGame({ starter: 0 });
-    for (const c of [0, 1, 5]) s = applyAction(s, place(0, c));
-    for (const c of [6, 7, 8]) s = applyAction(s, place(1, c)); // bottom row for player 1
-    assert.equal(s.phase, Phase.MOVEMENT);
-    assert.equal(s.winner, null, 'line during placement does not count');
-    assert.equal(s.result, null);
-  });
-
-  test('a vertical line formed while placing is NOT a win either', () => {
+  test('the second player cannot complete a column while placing', () => {
     let s = createGame({ starter: 1 });
-    for (const c of [2, 5, 8]) s = applyAction(s, place(1, c)); // right column for the starter
-    for (const c of [0, 4, 7]) s = applyAction(s, place(0, c));
-    assert.equal(s.phase, Phase.MOVEMENT);
-    assert.equal(s.winner, null);
+    for (const c of [0, 2, 5]) s = applyAction(s, place(1, c));
+    for (const c of [4, 7]) s = applyAction(s, place(0, c));
+    assert.equal(validateAction(s, place(0, 1)).reason, Reason.FORMS_LINE, 'column 1 = 1, 4, 7');
   });
 
-  test('a placement line does not count even after the opponent moves', () => {
+  test('diagonals are forbidden while placing too', () => {
+    let s = createGame({ starter: 0 });
+    for (const c of [0, 4]) s = applyAction(s, place(0, c));
+    assert.equal(validateAction(s, place(0, 8)).reason, Reason.FORMS_LINE);
+    s = createGame({ starter: 0 });
+    for (const c of [2, 6]) s = applyAction(s, place(0, c));
+    assert.equal(validateAction(s, place(0, 4)).reason, Reason.FORMS_LINE);
+  });
+
+  test('only your own pieces can make a cell forbidden', () => {
     let s = createGame({ starter: 0 });
     for (const c of [0, 1, 5]) s = applyAction(s, place(0, c));
-    for (const c of [6, 7, 8]) s = applyAction(s, place(1, c));
-    s = applyAction(s, move(0, 5, 4)); // starter makes a harmless move
-    assert.equal(s.phase, Phase.MOVEMENT);
-    assert.equal(s.winner, null);
-    assert.equal(s.turn, 1);
+    assert.ok(validateAction(s, place(1, 2)).ok, 'cell 2 would finish row 0 for player 0, but player 1 may use it');
+    assert.ok(legalActions(s).some((a) => a.to === 2));
+  });
+
+  test('legal placements skip line-completing cells and are never empty', () => {
+    // Exhaustive: every placement sequence leaves at least one legal cell.
+    const walk = (s) => {
+      if (s.phase !== Phase.PLACEMENT) return;
+      const acts = legalActions(s);
+      assert.ok(acts.length > 0, 'a player must always be able to place');
+      for (const a of acts) {
+        const next = applyAction(s, a);
+        if (next.placed[a.player] === 3) {
+          const own = next.board.flatMap((v, i) => (v === a.player ? [i] : []));
+          assert.ok(![...LINES, ...DIAGONALS].some((l) => l.every((c) => own.includes(c))), 'no line after placing');
+        }
+        if (next.placed[0] + next.placed[1] <= 4) walk(next);
+      }
+    };
+    walk(createGame({ starter: 0 }));
   });
 });
 
@@ -278,10 +289,10 @@ describe('draws', () => {
   test('threefold repetition of the same position is a draw', () => {
     // Shuffle back and forth without anyone completing a line.
     // 0 . 1
+    // 1 . 0
     // . 0 1
-    // 1 . 0   (diagonal for 0 does not count)
-    let s = fromPicture('0.1.011.0', { turn: 0 });
-    const cycle = [move(0, 0, 1), move(1, 2, 3), move(0, 1, 0), move(1, 3, 2)];
+    let s = fromPicture('0.11.0.01', { turn: 0 });
+    const cycle = [move(0, 0, 1), move(1, 3, 4), move(0, 1, 0), move(1, 4, 3)];
     let i = 0;
     while (s.phase !== Phase.OVER && i < 40) {
       s = applyAction(s, cycle[i % 4]);
@@ -295,8 +306,8 @@ describe('draws', () => {
   });
 
   test('50 moves without a winner is a draw', () => {
-    let s = fromPicture('0.1.011.0', { turn: 0, repetitionLimit: 1000 });
-    const cycle = [move(0, 0, 1), move(1, 2, 3), move(0, 1, 0), move(1, 3, 2)];
+    let s = fromPicture('0.11.0.01', { turn: 0, repetitionLimit: 1000 });
+    const cycle = [move(0, 0, 1), move(1, 3, 4), move(0, 1, 0), move(1, 4, 3)];
     let i = 0;
     while (s.phase !== Phase.OVER) {
       s = applyAction(s, cycle[i % 4]);

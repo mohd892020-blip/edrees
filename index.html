@@ -3,91 +3,86 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0e0b08">
-  <meta name="description" content="دريس — لعبة شعبية على لوحة 3×3: صُفّ قطعك الثلاث في خط أفقي أو عمودي قبل خصمك.">
+  <meta name="theme-color" content="#03060f">
+  <meta name="description" content="دريس — لعبة لوحية فاخرة: ثلاث قطع، وخطٌّ واحد، ورحلة من الألغاز والزعماء.">
   <title>دريس</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23271a0f'/%3E%3Cpath d='M12 12h40v40H12zM25 12v40M39 12v40M12 25h40M12 39h40' fill='none' stroke='%23e9bd73' stroke-width='3'/%3E%3Ccircle cx='18.5' cy='18.5' r='5' fill='%23f3eee2'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%23f3eee2'/%3E%3Ccircle cx='45.5' cy='45.5' r='5' fill='%23c8232c'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23081026'/%3E%3Cpath d='M12 12h40v40H12zM25 12v40M39 12v40M12 25h40M12 39h40' fill='none' stroke='%23f6e3ae' stroke-width='3'/%3E%3Ccircle cx='18.5' cy='18.5' r='5' fill='%23fff3cf'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%23fff3cf'/%3E%3Ccircle cx='45.5' cy='45.5' r='5' fill='%23c8202b'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Web fonts load without blocking the game; system Arabic fonts are used offline. -->
-  <link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    { "imports": { "three": "./js/vendor/three/three.module.min.js", "three/addons/": "./js/vendor/three/addons/" } }
+  </script>
 </head>
-<body data-theme="wood">
+<body data-theme="marble">
+  <!-- The 3D world lives behind every screen. -->
+  <div id="world"><canvas id="board-canvas" aria-label="لوحة اللعب"></canvas></div>
+
   <div id="app">
+
+    <!-- ───────────── Splash ───────────── -->
+    <div class="splash" id="splash" aria-hidden="true">
+      <div class="logo logo-splash" data-text="دريس">دريس</div>
+      <div class="splash-bar"><i></i></div>
+    </div>
 
     <!-- ───────────── Main menu ───────────── -->
     <section id="screen-menu" class="screen is-active" aria-label="القائمة الرئيسية">
-      <div class="menu-wrap">
+      <div class="menu-top">
+        <div class="crest" title="نجوم الرحلة"><span class="star">★</span><b id="menu-stars">0</b></div>
+        <div class="crest" title="مجموع الانتصارات">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v5a5 5 0 0 1-10 0zM7 5H3c0 4 2 6 5 6M17 5h4c0 4-2 6-5 6M12 13v4M8 21h8l-1-4H9z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          <b id="menu-wins">0</b>
+        </div>
+        <span class="grow"></span>
+        <button class="medal" id="btn-settings" type="button" aria-label="الإعدادات">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="menu-main">
         <header class="brand">
-          <div class="brand-mark" aria-hidden="true">
-            <span></span><span class="a"></span><span></span>
-            <span class="b"></span><span class="a"></span><span class="b"></span>
-            <span></span><span class="a"></span><span></span>
-          </div>
-          <h1 class="logo">دريس</h1>
-          <p class="tagline">لعبة شعبية · ثلاث قطع وخطٌّ واحد</p>
-          <div class="mode-buttons">
-            <button id="btn-play" class="btn btn-primary btn-xl mode-btn" type="button">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
-              <span class="mode-text"><b>كلاسيك</b><small>مباراة كاملة بالمستوى الذي تختاره</small></span>
-            </button>
-            <button id="btn-campaign" class="btn btn-campaign btn-xl mode-btn" type="button">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-12 4 7 3-4 4 9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="17" cy="6" r="2" fill="currentColor"/></svg>
-              <span class="mode-text"><b>رحلة دريس</b><small id="campaign-progress">ألغاز وتحديات وزعماء</small></span>
-            </button>
-          </div>
-          <div class="stats" id="menu-stats" aria-live="polite"></div>
+          <div class="flourish" aria-hidden="true"></div>
+          <h1 class="logo" data-text="دريس">دريس</h1>
+          <p class="tagline">ثلاث قطع · خطٌّ واحد · مجدٌ واحد</p>
+          <div class="flourish flip" aria-hidden="true"></div>
         </header>
 
-        <div class="settings">
-          <section class="panel">
-            <h2>مستوى الصعوبة في الكلاسيك</h2>
-            <div class="segmented" id="level-picker" role="radiogroup" aria-label="مستوى الصعوبة"></div>
-            <p class="hint" id="level-desc"></p>
-          </section>
+        <nav class="menu-nav" aria-label="أوضاع اللعب">
+          <button id="btn-classic" class="btn btn-gold btn-hero" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 1 1.9 5.3c.6 1.9 1.6 3.6 3.1 5.2H7c1.5-1.6 2.5-3.3 3.1-5.2A3 3 0 0 1 12 3zM7 15h10v2H7zM5.5 18.5h13V21h-13z" fill="currentColor"/></svg>
+            <span class="btn-text"><b>كلاسيك</b><small id="classic-sub">مباراة كاملة</small></span>
+          </button>
+          <button id="btn-campaign" class="btn btn-lacquer btn-hero" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19l5.5-12 4 7 2.5-3.5L21 19z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="17" cy="6" r="1.9" fill="currentColor"/></svg>
+            <span class="btn-text"><b>رحلة دريس</b><small id="campaign-progress">ألغاز وتحديات وزعماء</small></span>
+          </button>
+          <div class="menu-row">
+            <button id="btn-collection" class="btn btn-lacquer" type="button">المجموعة</button>
+            <button id="btn-how" class="btn btn-lacquer" type="button">طريقة اللعب</button>
+          </div>
+        </nav>
+      </div>
+    </section>
 
-          <section class="panel">
-            <h2>اللوحة</h2>
-            <div class="cards" id="theme-picker" role="radiogroup" aria-label="شكل اللوحة"></div>
-          </section>
-
-          <section class="panel">
-            <h2>قطعك</h2>
-            <div class="cards cards-pieces" id="piece-picker" role="radiogroup" aria-label="شكل القطع"></div>
-            <p class="hint ai-note" id="ai-piece-note"></p>
-          </section>
-
-          <section class="panel">
-            <h2>الصوت</h2>
-            <div class="sound-row">
-              <button id="menu-mute" class="icon-btn mute-btn" type="button" aria-pressed="false" aria-label="كتم الصوت">
-                <svg class="ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                <svg class="ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-              </button>
-              <input type="range" id="menu-volume" min="0" max="100" step="1" aria-label="مستوى الصوت">
-              <output id="menu-volume-val" for="menu-volume"></output>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="menu-music">
-              <span class="track" aria-hidden="true"></span>
-              <span>موسيقى خلفية هادئة</span>
-            </label>
-          </section>
-
-          <details class="panel rules">
-            <summary>طريقة اللعب</summary>
-            <ol>
-              <li>اللوحة ٣×٣، ولكل لاعب ثلاث قطع.</li>
-              <li>القرعة تحدد من يبدأ. يصفّ صاحب القرعة قطعه الثلاث في أي مربعات فارغة، ثم يصفّ الآخر قطعه في المربعات الباقية.</li>
-              <li>لا يُحتسب أي خط يتشكّل أثناء الصفّ.</li>
-              <li>بعد الصفّ يبدأ صاحب القرعة بالتحريك: في كل دور تحرّك قطعة واحدة إلى <b>أي</b> مربع فارغ (لا يُشترط أن يكون مجاوراً).</li>
-              <li>اسحب القطعة وأفلتها، أو انقرها ثم انقر المربع. بعد الإفلات لا تراجع.</li>
-              <li>يفوز من يصفّ قطعه الثلاث في خط <b>أفقي أو عمودي</b>. الخط القطري لا يُحتسب.</li>
-              <li>التعادل: تكرار نفس الوضعية ٣ مرات، أو مرور ٥٠ حركة دون فائز.</li>
-            </ol>
-          </details>
+    <!-- ───────────── Collection ───────────── -->
+    <section id="screen-collection" class="screen" aria-label="المجموعة">
+      <header class="screen-head">
+        <button class="medal" id="btn-collection-back" type="button" aria-label="رجوع">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 class="gold-text">المجموعة</h2>
+      </header>
+      <div class="dock">
+        <div class="tabs" role="tablist">
+          <button id="tab-themes" role="tab" aria-selected="true" type="button">اللوحات</button>
+          <button id="tab-pieces" role="tab" aria-selected="false" type="button">القطع</button>
         </div>
+        <div class="rail" id="theme-picker" role="radiogroup" aria-label="شكل اللوحة"></div>
+        <div class="rail cards-pieces" id="piece-picker" role="radiogroup" aria-label="شكل القطع" hidden></div>
+        <p class="dock-note" id="ai-piece-note"></p>
       </div>
     </section>
 
@@ -95,117 +90,201 @@
     <section id="screen-campaign" class="screen" aria-label="رحلة دريس">
       <div class="campaign-wrap">
         <header class="campaign-head">
-          <button class="icon-btn" id="btn-campaign-back" type="button" aria-label="القائمة الرئيسية">
+          <button class="medal" id="btn-campaign-back" type="button" aria-label="القائمة الرئيسية">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
           <div class="campaign-title">
-            <h2>رحلة دريس</h2>
-            <p>لكل فصل لوحته وقاعدته الخاصة. أكمل المراحل لتفتح ما بعدها.</p>
+            <h2 class="gold-text">رحلة دريس</h2>
+            <p>لكل فصل لوحته وقاعدته. أكمل المراحل لتفتح ما بعدها.</p>
           </div>
-          <div class="star-total" id="campaign-stars" aria-label="مجموع النجوم"></div>
+          <div class="crest" aria-label="مجموع النجوم"><span class="star">★</span><b id="campaign-stars"></b></div>
         </header>
         <div class="chapters" id="chapter-list"></div>
       </div>
     </section>
 
-    <!-- ───────────── Toss ───────────── -->
+    <!-- ───────────── Toss (played in the 3D world) ───────────── -->
     <section id="screen-toss" class="screen" aria-label="القرعة">
       <div class="toss-wrap">
-        <h2 class="toss-title">القرعة</h2>
-        <p class="toss-sub" id="toss-sub">من سيبدأ؟</p>
-        <div class="coin-stage">
+        <header class="toss-head">
+          <h2 class="toss-title gold-text">القرعة</h2>
+          <p class="toss-sub" id="toss-sub">من يبدأ الصفّ؟</p>
+        </header>
+
+        <!-- Fallback coin for browsers without WebGL. -->
+        <div class="coin-stage" id="coin-stage">
+          <div class="coin-shadow" id="coin-shadow"></div>
           <div class="coin-lift" id="coin-lift">
             <div class="coin" id="coin">
-              <div class="coin-face front"><div class="coin-img" id="coin-front-img"></div><span>أنت</span></div>
-              <div class="coin-face back"><div class="coin-img" id="coin-back-img"></div><span>الكمبيوتر</span></div>
+              <div class="coin-edge" id="coin-edge" aria-hidden="true"></div>
+              <div class="coin-face front">
+                <div class="coin-img" id="coin-front-img"></div>
+                <span class="coin-label">أنت</span>
+                <div class="coin-glint"></div>
+              </div>
+              <div class="coin-face back">
+                <div class="coin-img" id="coin-back-img"></div>
+                <span class="coin-label" id="coin-back-label">الكمبيوتر</span>
+                <div class="coin-glint"></div>
+              </div>
             </div>
           </div>
-          <div class="coin-shadow" id="coin-shadow"></div>
+          <div class="toss-sparks" id="toss-sparks" aria-hidden="true"></div>
         </div>
-        <div class="toss-result" id="toss-result" aria-live="assertive"></div>
-        <button id="btn-toss-go" class="btn btn-primary" type="button" hidden>ابدأ المباراة</button>
+
+        <div class="toss-bottom">
+          <div class="toss-result" id="toss-result" aria-live="assertive"></div>
+          <div class="toss-versus">
+            <div class="plaque toss-player" id="toss-p0">
+              <div class="plaque-medal"><div class="tp-piece" id="toss-p0-img"></div></div>
+              <div class="plaque-text"><b>أنت</b><span class="tp-tag">يبدأ</span></div>
+            </div>
+            <span class="toss-vs">ضد</span>
+            <div class="plaque toss-player" id="toss-p1">
+              <div class="plaque-medal"><div class="tp-piece" id="toss-p1-img"></div></div>
+              <div class="plaque-text"><b id="toss-p1-name">الكمبيوتر</b><span class="tp-tag">يبدأ</span></div>
+            </div>
+          </div>
+          <div class="toss-actions">
+            <button id="btn-toss-go" class="btn btn-gold toss-go" type="button" hidden>
+              <span>ابدأ المباراة</span><i class="go-progress" id="toss-progress" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- ───────────── Game ───────────── -->
+    <!-- ───────────── Game HUD ───────────── -->
     <section id="screen-game" class="screen" aria-label="شاشة اللعب">
-      <div class="stage" id="stage">
-        <canvas id="board-canvas" aria-label="لوحة اللعب"></canvas>
-        <div class="phase-toast" id="phase-toast" aria-live="polite"></div>
-      </div>
-
       <div class="hud-top" id="hud-top">
-      <header class="topbar">
-        <button class="icon-btn" id="btn-menu" type="button" aria-label="القائمة الرئيسية">
+        <button class="medal hud-back" id="btn-menu" type="button" aria-label="رجوع">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-        <div class="status">
-          <span class="phase-badge" id="hud-phase">مرحلة الصفّ</span>
-          <span class="moves" id="hud-moves"></span>
-        </div>
-        <div class="top-actions">
-        <button class="icon-btn hint-btn" id="btn-hint" type="button" aria-label="تلميح" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2h5c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div class="sound-anchor">
-          <button class="icon-btn mute-btn" id="btn-sound" type="button" aria-label="إعدادات الصوت">
-            <svg class="ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            <svg class="ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          </button>
-          <div class="sound-pop" id="sound-pop" hidden>
-            <div class="sound-row">
-              <button id="game-mute" class="icon-btn mute-btn" type="button" aria-pressed="false" aria-label="كتم الصوت">
-                <svg class="ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                <svg class="ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-              </button>
-              <input type="range" id="game-volume" min="0" max="100" step="1" aria-label="مستوى الصوت">
-              <output id="game-volume-val" for="game-volume"></output>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="game-music">
-              <span class="track" aria-hidden="true"></span>
-              <span>موسيقى خلفية</span>
-            </label>
-          </div>
-        </div>
-        </div>
-      </header>
 
-      <div class="players">
-        <div class="player-card" id="card-human">
-          <div class="pc-piece" id="human-piece-img"></div>
-          <div class="pc-info">
+        <div class="plaque player-card" id="card-human">
+          <div class="plaque-medal"><div class="pc-piece" id="human-piece-img"></div></div>
+          <div class="plaque-text">
             <b>أنت</b>
             <span class="pc-sub" id="human-sub"></span>
           </div>
           <div class="pc-left" id="human-left" aria-label="القطع المتبقية للصف"></div>
         </div>
-        <div class="turn-indicator" id="turn-indicator" data-turn="0" aria-live="polite">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span id="turn-text">دورك</span>
+
+        <div class="status">
+          <div class="cartouche">
+            <span class="phase-badge" id="hud-phase">مرحلة الصفّ</span>
+            <span class="moves" id="hud-moves"></span>
+          </div>
+          <div class="turn-indicator" id="turn-indicator" data-turn="0" aria-live="polite">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span id="turn-text">دورك</span>
+          </div>
         </div>
-        <div class="player-card" id="card-ai">
-          <div class="pc-piece" id="ai-piece-img"></div>
-          <div class="pc-info">
+
+        <div class="plaque player-card" id="card-ai">
+          <div class="plaque-medal"><div class="pc-piece" id="ai-piece-img"></div></div>
+          <div class="plaque-text">
             <b id="ai-name">الكمبيوتر</b>
             <span class="pc-sub" id="ai-sub"></span>
           </div>
           <div class="thinking-dots" aria-hidden="true"><i></i><i></i><i></i></div>
-          <div class="pc-left" id="ai-left" aria-label="قطع الكمبيوتر المتبقية للصف"></div>
+          <div class="pc-left" id="ai-left" aria-label="قطع الخصم المتبقية للصف"></div>
+        </div>
+
+        <div class="top-actions">
+          <button class="medal hint-btn" id="btn-hint" type="button" aria-label="تلميح" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2h5c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="sound-anchor">
+            <button class="medal mute-btn" id="btn-sound" type="button" aria-label="إعدادات الصوت">
+              <svg class="ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <svg class="ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+            <div class="sound-pop royal-panel" id="sound-pop" hidden>
+              <div class="sound-row">
+                <button id="game-mute" class="medal mute-btn" type="button" aria-pressed="false" aria-label="كتم الصوت">
+                  <svg class="ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                  <svg class="ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+                <input type="range" id="game-volume" min="0" max="100" step="1" aria-label="مستوى الصوت">
+                <output id="game-volume-val" for="game-volume"></output>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="game-music">
+                <span class="track" aria-hidden="true"></span>
+                <span>موسيقى خلفية</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="goal-row" id="goal-row" hidden>
+          <span class="chip goal-chip" id="hud-goal"></span>
+          <span class="chip rule-chip" id="hud-rule"></span>
         </div>
       </div>
-      <div class="goal-row" id="goal-row" hidden>
-        <span class="chip goal-chip" id="hud-goal"></span>
-        <span class="chip rule-chip" id="hud-rule"></span>
-      </div>
-      </div>
 
+      <div class="phase-toast" id="phase-toast" aria-live="polite"></div>
       <footer class="hint-bar" id="hint-bar" aria-live="polite"></footer>
     </section>
 
+    <!-- ───────────── Classic setup ───────────── -->
+    <div class="modal" id="modal-classic" hidden role="dialog" aria-modal="true" aria-labelledby="classic-title">
+      <div class="modal-card royal-panel">
+        <button class="modal-close" id="btn-classic-close" type="button" aria-label="إغلاق">×</button>
+        <div class="modal-kicker">مباراة كلاسيكية</div>
+        <h2 id="classic-title" class="gold-text">اختر خصمك</h2>
+        <div class="levels" id="level-picker" role="radiogroup" aria-label="مستوى الصعوبة"></div>
+        <p class="hint" id="level-desc"></p>
+        <div class="stats" id="menu-stats" aria-live="polite"></div>
+        <div class="modal-actions">
+          <button id="btn-play" class="btn btn-gold" type="button">ابدأ المباراة</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────────── Settings ───────────── -->
+    <div class="modal" id="modal-settings" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal-card royal-panel">
+        <button class="modal-close" id="btn-settings-close" type="button" aria-label="إغلاق">×</button>
+        <h2 id="settings-title" class="gold-text">الإعدادات</h2>
+        <div class="sound-row">
+          <button id="menu-mute" class="medal mute-btn" type="button" aria-pressed="false" aria-label="كتم الصوت">
+            <svg class="ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <svg class="ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+          <input type="range" id="menu-volume" min="0" max="100" step="1" aria-label="مستوى الصوت">
+          <output id="menu-volume-val" for="menu-volume"></output>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="menu-music">
+          <span class="track" aria-hidden="true"></span>
+          <span>موسيقى خلفية هادئة</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- ───────────── How to play ───────────── -->
+    <div class="modal" id="modal-how" hidden role="dialog" aria-modal="true" aria-labelledby="how-title">
+      <div class="modal-card royal-panel wide">
+        <button class="modal-close" id="btn-how-close" type="button" aria-label="إغلاق">×</button>
+        <h2 id="how-title" class="gold-text">طريقة اللعب</h2>
+        <ol class="rules">
+          <li>اللوحة ٣×٣، ولكل لاعب ثلاث قطع.</li>
+          <li>القرعة تحدد من يبدأ. يصفّ صاحب القرعة قطعه الثلاث في أي مربعات فارغة، ثم يصفّ الآخر قطعه في المربعات الباقية.</li>
+          <li>لا يجوز أن تصفّ قطعك الثلاث في خط واحد أثناء الصفّ: لا أفقياً ولا عمودياً ولا قطرياً. الخط يُصنع بالتحريك فقط.</li>
+          <li>بعد الصفّ يبدأ صاحب القرعة بالتحريك: في كل دور تحرّك قطعة واحدة إلى <b>أي</b> مربع فارغ (لا يُشترط أن يكون مجاوراً).</li>
+          <li>اسحب القطعة وأفلتها، أو انقرها ثم انقر المربع. بعد الإفلات لا تراجع.</li>
+          <li>يفوز من يصفّ قطعه الثلاث في خط <b>أفقي أو عمودي</b>. الخط القطري لا يُحتسب.</li>
+          <li>التعادل: تكرار نفس الوضعية ٣ مرات، أو مرور ٥٠ حركة دون فائز.</li>
+        </ol>
+      </div>
+    </div>
+
     <!-- ───────────── Result ───────────── -->
-    <div class="modal" id="modal-result" hidden role="dialog" aria-modal="true" aria-labelledby="result-title">
-      <div class="modal-card">
+    <div class="modal result-modal" id="modal-result" hidden role="dialog" aria-modal="true" aria-labelledby="result-title">
+      <div class="result-rays" aria-hidden="true"></div>
+      <div class="modal-card royal-panel result-card">
         <div class="result-emblem" id="result-emblem"></div>
         <h2 id="result-title"></h2>
         <div class="result-stars" id="result-stars" hidden></div>
@@ -218,9 +297,9 @@
 
     <!-- ───────────── Stage intro ───────────── -->
     <div class="modal" id="modal-stage" hidden role="dialog" aria-modal="true" aria-labelledby="stage-title">
-      <div class="modal-card stage-card">
-        <div class="stage-kind" id="stage-kind"></div>
-        <h2 id="stage-title"></h2>
+      <div class="modal-card royal-panel stage-card">
+        <div class="modal-kicker" id="stage-kind"></div>
+        <h2 id="stage-title" class="gold-text"></h2>
         <p id="stage-desc"></p>
         <dl class="stage-facts">
           <div><dt>الهدف</dt><dd id="stage-goal"></dd></div>
@@ -229,41 +308,41 @@
         </dl>
         <ul class="star-list" id="stage-stars"></ul>
         <div class="modal-actions">
-          <button id="btn-stage-start" class="btn btn-primary" type="button">ابدأ</button>
-          <button id="btn-stage-cancel" class="btn btn-ghost" type="button">رجوع</button>
+          <button id="btn-stage-start" class="btn btn-gold" type="button">ابدأ</button>
+          <button id="btn-stage-cancel" class="btn btn-lacquer" type="button">رجوع</button>
         </div>
       </div>
     </div>
 
     <!-- ───────────── Game review ───────────── -->
     <div class="modal" id="modal-analysis" hidden role="dialog" aria-modal="true" aria-labelledby="analysis-title">
-      <div class="modal-card wide">
-        <h2 id="analysis-title">تحليل المباراة</h2>
+      <div class="modal-card royal-panel wide">
+        <h2 id="analysis-title" class="gold-text">تحليل المباراة</h2>
         <p class="analysis-note">مقارنة كل قرار من قراراتك باللعب المثالي.</p>
         <p class="analysis-legend"><span class="lg from"></span>من أين <span class="lg to"></span>إلى أين <span class="lg best"></span>الحركة الأفضل</p>
         <div class="analysis-summary" id="analysis-summary"></div>
         <ol class="analysis-list" id="analysis-list"></ol>
         <div class="modal-actions">
-          <button id="btn-analysis-close" class="btn btn-ghost" type="button">رجوع</button>
+          <button id="btn-analysis-close" class="btn btn-lacquer" type="button">رجوع</button>
         </div>
       </div>
     </div>
 
     <div class="modal" id="modal-confirm" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-      <div class="modal-card small">
-        <h2 id="confirm-title">مغادرة المباراة؟</h2>
+      <div class="modal-card royal-panel small">
+        <h2 id="confirm-title" class="gold-text">مغادرة المباراة؟</h2>
         <p>ستُلغى المباراة الحالية دون احتساب نتيجة.</p>
         <div class="modal-actions">
-          <button id="btn-confirm-yes" class="btn btn-primary" type="button">نعم، غادر</button>
-          <button id="btn-confirm-no" class="btn btn-ghost" type="button">متابعة اللعب</button>
+          <button id="btn-confirm-yes" class="btn btn-gold" type="button">نعم، غادر</button>
+          <button id="btn-confirm-no" class="btn btn-lacquer" type="button">متابعة اللعب</button>
         </div>
       </div>
     </div>
   </div>
 
   <div class="file-warning" id="file-warning" hidden role="alert">
-    <div class="modal-card">
-      <h2>افتح اللعبة من رابط ويب</h2>
+    <div class="modal-card royal-panel">
+      <h2 class="gold-text">افتح اللعبة من رابط ويب</h2>
       <p>المتصفح لا يسمح بتشغيل اللعبة من ملف على الجهاز مباشرة. افتحها من موقعها على الإنترنت،
         أو شغّل داخل مجلدها الأمر <code dir="ltr">python -m http.server 8000</code>
         ثم افتح <code dir="ltr">http://localhost:8000</code></p>

@@ -4,7 +4,7 @@
  */
 
 import {
-  winningCells, opponent, linesFor, canStep, normalizeVariant, variantKey, hasLegalMove,
+  winningCells, opponent, linesFor, canStep, normalizeVariant, variantKey, hasLegalMove, formsLine,
 } from '../core/rules.js';
 import { encode, placementChildren, decode } from './solver.js';
 
@@ -110,7 +110,7 @@ function heuristicPlacementScore(code, starter, leafDepth, v) {
   const key = `${variantKey(v)}:${starter}:${leafDepth}:${code}`;
   const hit = placementMemo.get(key);
   if (hit !== undefined) return hit;
-  const { mover, children } = placementChildren(code, starter, v.blocked);
+  const { mover, children } = placementChildren(code, starter, v);
   let result;
   if (mover === null) {
     result = negamax(decode(code, v.blocked), starter, leafDepth, -Infinity, Infinity, 0, v);
@@ -128,7 +128,7 @@ export function rankPlacementsBySearch(board, starter, mover, leafDepth, variant
   const sign = mover === starter ? 1 : -1;
   const out = [];
   for (let cell = 0; cell < 9; cell++) {
-    if (board[cell] !== null) continue;
+    if (board[cell] !== null || formsLine(board, mover, cell, v)) continue;
     const child = code + (mover + 1) * 3 ** cell;
     out.push({ cell, score: sign * heuristicPlacementScore(child, starter, leafDepth, v) });
   }

@@ -53,7 +53,7 @@ export function renderCampaign(progress, onPick) {
         <div class="chapter-stars">${open ? `<span class="star">★</span> ${chapterStars(progress, ci)} من ${max}` : '<span class="chapter-lock">أكمل زعيم الفصل السابق</span>'}</div>
       </div>
       <ol class="stage-path"></ol>`;
-    art.querySelector('.chapter-banner').prepend(themePreview(chapter.theme, 168));
+    art.querySelector('.chapter-banner').prepend(themePreview(chapter.theme, 560));
     const path = art.querySelector('.stage-path');
 
     chapter.stages.forEach((stage, si) => {
